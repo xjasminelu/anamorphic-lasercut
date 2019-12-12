@@ -7,6 +7,8 @@ function isTransparent(value)
         return true
     elseif value == RGBA{N0f8}(0.0,0.0,0.0,0.0)
         return true
+    elseif value == RGBA{N0f8}(1.0, 1.0, 1.0, 1.0)
+        return true
     else
         return false
     end
@@ -110,6 +112,11 @@ function gen_beam(arr, beam_w, beam_s)
     for j = beam_s:beam_w+beam_s, i=size(arr)[1]+1:size(arr)[1]+24
         arr_padded[i,j] = RGBA{N0f8}(0.0,0.0,0.0,1.0)
     end
+
+    #consider spaces in between
+    for j = size(arr_padded)[2]-Int(round(beam_w/2)):size(arr_padded)[2], i=1:size(arr_padded)[1]
+        arr_padded[i,j] = RGBA{N0f8}(0.0,0.0,0.0,0.0)
+    end
     return arr_padded
 end
 
@@ -178,8 +185,8 @@ function test_main(output, img)
     width = min(size(img)[1],size(img)[2])
     @show width
     div_w = Int(round(width/5))
-
-    beam_w = Int(round(12*div_w/96))
+    # 13 vs 15
+    beam_w = Int(round(9*div_w/96))
     beam_s = Int(round((div_w - beam_w)/2))
 
     #Assumes we will only use square images
@@ -214,6 +221,7 @@ function test_main(output, img)
      <style type="text/css"><![CDATA[
        path {
           fill: none;
+          stroke-width: 0.0001;
        }
      ]]></style>
   </defs>\n""");
@@ -231,13 +239,58 @@ function draw_square(FF, offsetX, offsetY)
     color = "red"
     println(FF, "<path style=\"stroke:$color\"\n  d=\"")
     println(FF, "M $offsetX $offsetY")
-    x_d = offsetX + 12
-    y_d = offsetY + 12
+    x_d = offsetX + 8
+    y_d = offsetY + 8
     println(FF, "L $x_d $offsetY")
     println(FF, "L $x_d $y_d")
     println(FF, "L $offsetX $y_d")
     println(FF, "L $offsetX $offsetY")
     println(FF, "\"/>")
+end
+
+function gen_square(output, width)
+    FF = open(output, "w")
+    print(FF, """<svg xmlns="http://www.w3.org/2000/svg" version="1.1"
+    width="792pt"
+    height="792pt"
+    viewBox="0 0 792 792">
+  <defs>
+     <style type="text/css"><![CDATA[
+       path {
+        stroke-width: 0.0001;
+          fill: none;
+       }
+     ]]></style>
+  </defs>\n""");
+
+    offsetX = 5
+    offsetY = 5
+    color = "red"
+    println(FF, "<path style=\"stroke:$color\"\n  d=\"")
+    println(FF, "M $offsetX $offsetY")
+    x_d = offsetX + width
+    y_d = offsetY + width
+    println(FF, "L $x_d $offsetY")
+    println(FF, "L $x_d $y_d")
+    println(FF, "L $offsetX $y_d")
+    println(FF, "L $offsetX $offsetY")
+    println(FF, "\"/>")
+
+    println(FF, "<path style=\"stroke:$color\"\n  d=\"")
+    startX = offsetX
+    startY = y_d + 3
+
+    println(FF, "M $startX $startY")
+    x_d2 = startX + width
+    y_d2 = startY + width*4
+    println(FF, "L $x_d2 $startY")
+    println(FF, "L $x_d2 $y_d2")
+    println(FF, "L $startX $y_d2")
+    println(FF, "L $startX $startY")
+    println(FF, "\"/>")
+
+    print(FF, "</svg>\n")
+    close(FF)
 end
 
 function gen_board(output)
@@ -249,16 +302,21 @@ function gen_board(output)
   <defs>
      <style type="text/css"><![CDATA[
        path {
+        stroke-width: 0.0001;
           fill: none;
        }
      ]]></style>
   </defs>\n""");
-    for i=1:5, j=1:5
-        draw_square(FF, i*116, j*116)
+      subwidth = 43.5
+      beam_width = 9
+      distance_btwn = subwidth*2 + beam_width * 2
+      offset = 10
+    for i=0:4, j=0:4
+        draw_square(FF, i*distance_btwn +offset, j*distance_btwn +offset)
     end
-
-    for i=1:5, j=1:5
-        draw_square(FF, i*116 - 58, j*116 - 58)
+    image2_offset = beam_width + subwidth
+    for i=0:4, j=0:4
+        draw_square(FF, i*distance_btwn + image2_offset + offset, j*distance_btwn + image2_offset + offset)
     end
 
     offsetX = 5
@@ -266,8 +324,8 @@ function gen_board(output)
     color = "red"
     println(FF, "<path style=\"stroke:$color\"\n  d=\"")
     println(FF, "M $offsetX $offsetY")
-    x_d = offsetX + 656
-    y_d = offsetY + 656
+    x_d = offsetX + offset + 4*distance_btwn + image2_offset + beam_width
+    y_d = offsetY + offset + 4*distance_btwn + image2_offset + beam_width
     println(FF, "L $x_d $offsetY")
     println(FF, "L $x_d $y_d")
     println(FF, "L $offsetX $y_d")
